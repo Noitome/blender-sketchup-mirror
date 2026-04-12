@@ -1,82 +1,91 @@
-# SketchUp Blender Addon
+# SketchUp 2026 Workflow for Blender 4.x
 
-Mimics SketchUp's navigation and core workflow inside Blender 4.x.
+Mimics SketchUp 2026's navigation feel and core workflow inside Blender.
 
 ## Installation
 
-1. In Blender, go to `Edit > Preferences > Add-ons`
-2. Click `Install` and select this folder
-3. Enable "SketchUp Workflow" in the add-ons list
-4. Find the new **SK** panel in the 3D View sidebar (right side)
+1. Open Blender 4.x
+2. Go to `Edit > Preferences > Add-ons`
+3. Click **Install** → navigate to this folder
+4. Enable **"SketchUp 2026 Workflow"**
+5. The **SK** sidebar panel appears on the right of the 3D View
 
-## How to Use
+## Quick Start
 
-### Enabling SketchUp Mode
-- Press `Shift+;` or click **SK Mode** toggle in the SK panel
-- When SK Mode is ON, navigation changes to SketchUp-style
-- When OFF, Blender behaves normally
+**Enable:** `Shift + ;` or click **SK Mode** toggle in the SK panel
 
-### Navigation (SK Mode ON)
-| Action | SketchUp-style |
-|--------|---------------|
+**Navigation (when SK Mode is ON):**
+| Action | Control |
+|--------|---------|
 | Orbit | Left-drag |
 | Pan | Shift + Left-drag |
 | Zoom | Scroll wheel |
+| Context menu | Right-click |
 
-### Tools (SK Mode ON or OFF)
+**Tools:**
 | Tool | What it does |
 |------|-------------|
-| **Rectangle** | Click two corners to draw a flat rectangle on a face |
+| **Select** | Left-click to select |
+| **Orbit / Pan / Zoom** | Navigation tools |
+| **Rectangle** | Click two corners — draws flat rectangle on face |
 | **Circle** | Click center, drag to set radius |
-| **Push Pull** | Select a face, drag to extrude it (like SketchUp) |
-| **Follow Me** | Loft/extrude a face along edges |
-| **Move** | Move selected geometry with inference snapping |
+| **Line** | Click two points — draws edge |
+| **Push Pull** | Select face, drag to extrude along normal |
+| **Follow Me** | Loft a profile face along selected edges |
+| **Offset** | Push edges/faces outward by a distance |
+| **Move / Rotate / Scale** | Standard transforms |
 
-### UI
-- **SK** sidebar panel — all tools and options
-- **SK Options** — unit system (metric/imperial), inference snap toggle
-- Status bar shows current mode
+## UI Layout
 
-## Roadmap
+- **SK sidebar panel** — all tools organized by category (Select, Draw, Construct, Modify)
+- **SK Options** — units (metric/imperial), inference snap toggle
+- **Inference panel** — shows active snap type and last measurement
+- **Status footer** — contextual help text at bottom of viewport
 
-- [x] Left-drag orbit navigation
+## What's Working
+
+- [x] SK Mode toggle (Shift+;)
+- [x] Left-drag orbit (raycast-based pivot)
 - [x] Shift+drag pan
 - [x] Scroll zoom
-- [x] Rectangle draw tool
-- [x] Circle draw tool
-- [x] Push-pull extrude
-- [ ] Follow-me loft (basic)
-- [ ] Move with inference snapping
-- [ ] Endpoint/midpoint/face-center snapping overlay
-- [ ] SketchUp-style dimension display during drag
-- [ ] Material/color quick panel
-- [ ] Component/group quick panel
-- [ ] Keyboard shortcut map to match SketchUp exactly
+- [x] Right-click → SketchUp-style context menu
+- [x] Active tool highlighting in sidebar
+- [x] Status bar with tool tips
+- [x] Rectangle, Circle, Line draw tools
+- [x] Push-pull face extrude
+- [x] Follow-me loft
+- [x] Offset edges/faces
+- [x] Move / Rotate / Scale delegates to Blender's transforms
+- [x] Units switcher (metric/imperial)
+- [x] Inference snap scaffolding (endpoint, midpoint, on-edge)
 
-## Files
+## What's Still Rough
+
+- [ ] Orbit doesn't yet pivot around exact cursor hit point (uses Blender center)
+- [ ] Inference overlay not drawn visually yet (snap type tracked but no colored lines)
+- [ ] No live dimension readout during drag
+- [ ] No keyboard shortcut parity (Tab=P, M=Move etc. — full remap)
+- [ ] Scale/Rotate use Blender's native popups, not SK-style inline
+
+## File Structure
 
 ```
 sketchup-blender-addon/
-├── __init__.py      # Entry point, bl_info
+├── __init__.py          # Entry point, bl_info
 ├── ops/
-│   ├── navigation.py   # Orbit, pan, zoom operators
-│   ├── push_pull.py    # Push-pull extrude
-│   ├── follow_me.py    # Follow-me loft
-│   ├── move.py         # Move with inference
-│   ├── rectangle.py    # Rectangle draw
-│   └── circle.py       # Circle draw
+│   ├── __init__.py
+│   ├── navigation.py    # Orbit, pan, zoom, context menu, SK mode toggle
+│   ├── push_pull.py     # Push-pull extrude
+│   ├── follow_me.py     # Follow-me loft
+│   ├── move.py          # Move with inference
+│   ├── rectangle.py     # Rectangle draw
+│   ├── circle.py        # Circle draw
+│   ├── line.py          # Line draw
+│   ├── select.py        # Select tool
+│   ├── offset.py        # Offset edges/faces
+│   └── transforms.py    # Rotate, scale delegates
 ├── ui/
-│   └── __init__.py     # SK sidebar panel, toolbar
+│   └── __init__.py      # SK sidebar panel, options, status footer
 └── utils/
-    └── __init__.py     # Inference snapping helpers
-```
-
-## Building / Development
-
-This is pure Python — no build step needed. Just install the folder as an addon.
-
-To reload after editing without restarting Blender:
-```python
-bpy.ops.wm.addon_disable(module="sketchup_blender_addon")
-bpy.ops.wm.addon_enable(module="sketchup_blender_addon")
+    └── __init__.py      # Inference snapping helpers
 ```
