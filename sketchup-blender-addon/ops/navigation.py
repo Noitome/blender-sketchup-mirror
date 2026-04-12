@@ -11,10 +11,12 @@ import bgl
 import gpu
 from gpu_extras.batch import batch_for_shader
 import blf
-from mathutils import Vector, Matrix
+from mathutils import Vector, Matrix, Quaternion
 from bpy.props import FloatProperty, EnumProperty, BoolProperty
 from bpy.types import Operator
 from bpy import context
+
+from . import inference_overlay
 
 # ------------------------------------------------------------------
 # Raycast helper — get 3D point under cursor
@@ -109,16 +111,80 @@ class VIEW3D_OT_sk_orbit(Operator):
             dy = event.mouse_y - self._prev_y
 
             if dx != 0 or dy != 0:
-                # Use Blender's rotate — it handles the math
+                # Rotate around the clicked pivot point, not viewport center
+                # We do this by:
+                # 1. Getting the current view rotation as a matrix
+                # 2. Building a rotation matrix from mouse delta
+                # 3. Transforming the pivot point into view space
+                # 4. Rotating view to look at the rotated pivot
                 try:
-                    bpy.ops.view3d.rotate(
-                        ctx.copy(),
-                        deltax=dx,
-                        deltay=dy,
-                    )
+                    region = ctx.region
+                    rv3d = region.data
+
+                    # Sensitivity factor
+                    sensitivity = 0.01
+                    rot_dx = dx * sensitivity
+                    rot_dy = dy * sensitivity
+
+                    # Get current view rotation
+                    view_quat = rv3d.view_rotation.copy()
+
+                    # Build rotation deltas
+                    # Horizontal orbit (around vertical Z axis in view space)
+                    from math import radians, cos, sin
+                    view_euler = view_quat.to_euler()
+
+                    # Create rotation around screen axes
+                    import math
+
+                    # Get the view's up and right vectors in world space
+                    view_up = rv3d.view_matrix.inverted().col[1].to_3d().normalized()
+                    view_right = rv3d.view_matrix.inverted().col[0].to_3d().normalized()
+                    view_forward = -rv3d.view_matrix.inverted().col[2].to_3d().normalized()
+
+                    # Build quaternion rotations around view axes
+                    import math
+                    quat_right = view_right
+                    quat_up = view_up
+
+                    from mathutils import Quaternion
+
+                    # Rotate around screen-relative horizontal axis
+                    rot_horiz = Quaternion(quat_up, -rot_dx)
+                    # Rotate around screen-relative vertical axis
+                    rot_vert = Quaternion(quat_right, -rot_dy)
+
+                    # Apply to view rotation
+                    new_quat = rot_horiz @ rot_vert @ view_quat
+                    new_quat.normalize()
+
+                    # Apply to rv3d
+                    rv3d.view_rotation = new_quat
+
+                    # Also update view location to orbit around the pivot
+                    if self._hit_point is not None:
+                        # Rotate the pivot in world space
+                        rot_total = rot_horiz @ rot_vert
+                        new_pivot = rot_total @ self._hit_point
+
+                        # Adjust view location so pivot stays centered
+                        # This is approximate but gives the feel of orbiting around pivot
+                        pivot_offset = new_pivot - self._hit_point
+                        new_view_loc = rv3d.view_location - pivot_offset
+                        rv3d.view_location = new_view_loc
+
+                    ctx.area.tag_redraw()
+
                 except Exception as e:
-                    # Fallback: rotate around view center
-                    pass
+                    # Fallback to Blender's default orbit
+                    try:
+                        bpy.ops.view3d.rotate(
+                            ctx.copy(),
+                            deltax=dx,
+                            deltay=dy,
+                        )
+                    except:
+                        pass
 
             self._prev_x = event.mouse_x
             self._prev_y = event.mouse_y
@@ -451,20 +517,37 @@ def register():
         km = _get_keymap_items(kc, '3D View', 'VIEW_3D')
         km.keymap_items.new('view3d.toggle_sk_mode', type='SEMI_COLON', value='PRESS', shift=True)
 
-        # In SK Mode, intercept navigation:
-        # Left-drag = orbit
-        # Shift+Left-drag = pan
+        # SK keyboard shortcuts (work when SK Mode is ON)
+        # Tab = Push Pull
+        km.keymap_items.new('view3d.sk_push_pull_simple', type='TAB', value='PRESS')
+        # M = Move
+        km.keymap_items.new('view3d.sk_move', type='M', value='PRESS')
+        # R = Rectangle
+        km.keymap_items.new('view3d.sk_rectangle', type='R', value='PRESS')
+        # C = Circle
+        km.keymap_items.new('view3d.sk_circle', type='C', value='PRESS')
+        # L = Line
+        km.keymap_items.new('view3d.sk_line', type='L', value='PRESS')
+        # O = Offset
+        km.keymap_items.new('view3d.sk_offset', type='O', value='PRESS')
+        # S = Scale
+        km.keymap_items.new('view3d.sk_scale', type='S', value='PRESS')
+        # G = Move (alternative)
+        km.keymap_items.new('view3d.sk_move', type='G', value='PRESS')
         # Right-click = context menu
-        # Scroll handled separately
+        km.keymap_items.new('view3d.sk_context_menu', type='RIGHTMOUSE', value='PRESS')
 
-        # Store Blender's defaults so we can restore them
         global _keymap_setup
         _keymap_setup = True
+
+    # Always start the viewport draw handler — no-op when inference inactive
+    inference_overlay.draw_handler_add()
 
     print("[SK Nav] Navigation operators registered")
 
 
 def unregister():
+    inference_overlay.draw_handler_remove()
     for cls in reversed(classes):
         bpy.utils.unregister_class(cls)
 

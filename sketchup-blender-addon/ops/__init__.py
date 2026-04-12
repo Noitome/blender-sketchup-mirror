@@ -9,6 +9,7 @@ from . import line
 from . import select
 from . import offset
 from . import transforms
+from . import inference_overlay
 
 def register():
     navigation.register()
@@ -21,8 +22,10 @@ def register():
     select.register()
     offset.register()
     transforms.register()
+    inference_overlay.register()
 
 def unregister():
+    inference_overlay.unregister()
     transforms.unregister()
     offset.unregister()
     select.unregister()
