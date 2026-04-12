@@ -10,6 +10,7 @@ from . import select
 from . import offset
 from . import transforms
 from . import inference_overlay
+from . import tape_measure
 
 def register():
     navigation.register()
@@ -23,8 +24,10 @@ def register():
     offset.register()
     transforms.register()
     inference_overlay.register()
+    tape_measure.register()
 
 def unregister():
+    tape_measure.unregister()
     inference_overlay.unregister()
     transforms.unregister()
     offset.unregister()
