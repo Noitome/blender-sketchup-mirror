@@ -6,7 +6,7 @@ bl_info = {
     "name": "SketchUp 2026 Workflow",
     "author": "Horizon",
     "version": (0, 2, 0),
-    "blender": (4, 0, 0),
+    "blender": (5, 0, 0),
     "category": "3D View",
     "description": "SketchUp 2026-style navigation and tools: left-drag orbit, push-pull, follow-me, inference snap, context menu",
     "doc_url": "",
